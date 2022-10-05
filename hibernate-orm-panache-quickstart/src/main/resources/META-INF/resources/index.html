@@ -1,0 +1,170 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Приложение для работы с БД</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/wingcss/0.1.8/wing.min.css"/>
+    <style>
+        input[type=number] {
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            -webkit-transition: .5s;
+            transition: .5s;
+            outline: 0;
+            font-family: 'Open Sans', serif;
+        }
+    </style>
+    <!-- Load AngularJS -->
+    <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
+    <script type="text/javascript">
+      var app = angular.module("MealtypeManagement", []);
+
+      //Controller Part
+      app.controller("MealtypeManagementController", function ($scope, $http) {
+
+        //Initialize page with default data which is blank in this example
+        $scope.mealtypes = [];
+
+        $scope.form = {
+          id: -1,
+          name: ""
+        };
+
+
+        //Now load the data from server
+        _refreshPageData();
+
+        //HTTP POST/PUT methods for add/edit mealtypes
+        $scope.update = function () {
+          var method = "";
+          var url = "";
+          var data = {};
+          if ($scope.form.id == -1) {
+            //Id is absent so add mealtypes - POST operation
+            method = "POST";
+            url = '/mealtypes';
+            data.name = $scope.form.name;
+          } else {
+            //If Id is present, it's edit operation - PUT operation
+            method = "PUT";
+            url = '/mealtypes/' + $scope.form.id;
+            data = $scope.form;
+          }
+
+          $http({
+            method: method,
+            url: url,
+            data: angular.toJson(data),
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }).then(_success, _error);
+        };
+
+        //HTTP DELETE- delete mealtype by id
+        $scope.remove = function (mealtype) {
+          $http({
+            method: 'DELETE',
+            url: '/mealtypes/' + mealtype.id
+          }).then(_success, _error);
+        };
+
+        //In case of edit mealtypes, populate form with mealtype data
+        $scope.edit = function (mealtype) {
+          $scope.form.name = mealtype.name;
+          $scope.form.id = mealtype.id;
+        };
+
+          /* Private Methods */
+        //HTTP GET- get all mealtypes collection
+        function _refreshPageData() {
+          $http({
+            method: 'GET',
+            url: '/mealtypes'
+          }).then(function successCallback(response) {
+            $scope.mealtypes = response.data;
+          }, function errorCallback(response) {
+            console.log(response.statusText);
+          });
+        }
+
+        function _success(response) {
+          _refreshPageData();
+          _clearForm()
+        }
+
+        function _error(response) {
+          alert(response.data.message || response.statusText);
+        }
+
+        //Clear the form
+        function _clearForm() {
+          $scope.form.name = "";
+          $scope.form.id = -1;
+        }
+      });
+    </script>
+</head>
+<body ng-app="MealtypeManagement" ng-controller="MealtypeManagementController">
+
+<div class="container">
+    <p>Добро пожаловать в приложение по управлению БД "Кафе".</p>
+    <tl></tl>
+    <p>БД написана на PostgreSQL, по желанию поменяйте название, логин, пароль и порт в application.properties</p>
+    <tl></tl>
+    <p>БД отображает меню кафе, в ней представлены 4 сущности:</p>
+    <tl></tl>
+    <p>1. Виды питания (mealtypes) (вы сейчас здесь) - список названий доступных видов питания</p>
+    <tl></tl>
+    <p>2. Блюда (dishes) - список блюд и их стоимостей</p>
+    <tl></tl>
+    <p>3. Наборы еды (foodsets) (Основная сущность) - комплекты из блюд, поля: "Название", "Вид питания" и "Стоимость"</p>
+    <tl></tl>
+    <p>4. Блюда в наборах (dishesinsets) - сущность-детализация сущности "Наборы еды", поля: Адрес блюда, Адрес набора еды, примечание (для конкретного блюда в конкретном наборе) </p>
+    <tl></tl>
+    <p>Добавлять и удалять Блюда в наборах, а также
+        редактировать комментарии к ним можно только
+        через специальные функции основной сущности:</p>
+    <tl></tl>
+    <p>add_dish - добавить блюдо с примечанием в набор</p>
+    <tl></tl>
+    <p>edit_dish_comment - изменить примечание блюда в наборе</p>
+    <tl></tl>
+    <p>post_with_dish - создать набор еды и добавить в него блюдо с примечанием</p>
+    <tl></tl>
+    <p>remove_from_set - убрать блюдо из набора</p>
+    <tl></tl>
+    <p>Функция с параметром {x} создаёт X случайных объектов основной сущности и заполняет их тремя случайными блюдами</p>
+    <tl></tl>
+        <p>Я не эксперт в вёрстке Web-страниц, а в тестовом задании об html страницах не было ни слова,
+        эти страницы сделаны по образцу официальных гайдов Quarkus для удобства
+        работы со справочниками. Работу функций можно проверить в Swagger по ссылке ниже</p>
+    <a href="http://localhost:8080/dishes.html">Справочник со списком блюд</a>
+    <a href="http://localhost:8080/q/swagger-ui/#/">Проверка функций в Swagger</a>
+    <h1>Доступные виды питания</h1>
+    <h3>Добавить/редактировать вид питания</h3>
+    <form ng-submit="update()">
+        <div class="row">
+            <div class="col-6"><input type="text" placeholder="Название" ng-model="form.name" size="60"/></div>
+        </div>
+        <input type="submit" value="Сохранить"/>
+    </form>
+
+    <h3>Список видов питания</h3>
+    <div class="row">
+        <div class="col-2">Название</div>
+    </div>
+    <div class="row" ng-repeat="mealtype in mealtypes">
+        <div class="col-2">{{ mealtype.name }}</div>
+        <div class="col-8"><a ng-click="edit( mealtype )" class="btn">Изменить</a> <a ng-click="remove( mealtype )" class="btn">Удалить</a>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

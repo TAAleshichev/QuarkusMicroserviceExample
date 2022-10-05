@@ -1,0 +1,147 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Приложение для работы с БД</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/wingcss/0.1.8/wing.min.css"/>
+    <style>
+        input[type=number] {
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            -webkit-transition: .5s;
+            transition: .5s;
+            outline: 0;
+            font-family: 'Open Sans', serif;
+        }
+    </style>
+    <!-- Load AngularJS -->
+    <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
+    <script type="text/javascript">
+      var app = angular.module("DishManagement", []);
+
+      //Controller Part
+      app.controller("DishManagementController", function ($scope, $http) {
+
+        //Initialize page with default data which is blank in this example
+        $scope.dishes = [];
+
+        $scope.form = {
+          id: -1,
+          name: "",
+          cost: 0.0
+        };
+
+        //Now load the data from server
+        _refreshPageData();
+
+        //HTTP POST/PUT methods for add/edit dishes
+        $scope.update = function () {
+          var method = "";
+          var url = "";
+          var data = {};
+          if ($scope.form.id == -1) {
+            //Id is absent so add dishes - POST operation
+            method = "POST";
+            url = '/dishes';
+            data.name = $scope.form.name;
+            data.cost = $scope.form.cost;
+          } else {
+            //If Id is present, it's edit operation - PUT operation
+            method = "PUT";
+            url = '/dishes/' + $scope.form.id;
+            data = $scope.form;
+          }
+
+          $http({
+            method: method,
+            url: url,
+            data: angular.toJson(data),
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }).then(_success, _error);
+        };
+
+        //HTTP DELETE- delete dish by id
+        $scope.remove = function (dish) {
+          $http({
+            method: 'DELETE',
+            url: '/dishes/' + dish.id
+          }).then(_success, _error);
+        };
+
+        //In case of edit dishes, populate form with dish data
+        $scope.edit = function (dish) {
+          $scope.form.name = dish.name;
+          $scope.form.cost = dish.cost;
+          $scope.form.id = dish.id;
+        };
+
+          /* Private Methods */
+        //HTTP GET- get all dishes collection
+        function _refreshPageData() {
+          $http({
+            method: 'GET',
+            url: '/dishes'
+          }).then(function successCallback(response) {
+            $scope.dishes = response.data;
+          }, function errorCallback(response) {
+            console.log(response.statusText);
+          });
+        }
+
+        function _success(response) {
+          _refreshPageData();
+          _clearForm()
+        }
+
+        function _error(response) {
+          alert(response.data.message || response.statusText);
+        }
+
+        //Clear the form
+        function _clearForm() {
+          $scope.form.name = "";
+          $scope.form.cost = 0.0;
+          $scope.form.id = -1;
+        }
+      });
+    </script>
+</head>
+<body ng-app="DishManagement" ng-controller="DishManagementController">
+
+<div class="container">
+    <a href="http://localhost:8080/">Справочник видов питания</a>
+    <a href="http://localhost:8080/q/swagger-ui/#/">Проверка функций в Swagger</a>
+    <h1>Блюда</h1>
+    <h3>Добавить/Изменить блюдо</h3>
+    <form ng-submit="update()">
+        <div class="row">
+            <div class="col-6"><input type="text" placeholder="Название блюда" ng-model="form.name" size="60"/></div>
+        </div>
+        <div class="row">
+            <div class="col-6"><input type="number" step=".01" min="0" placeholder="Стоимость в рублях" ng-model="form.cost" size="60"/></div>
+        </div>
+        <input type="submit" value="Сохранить"/>
+    </form>
+
+    <h3>Список блюд</h3>
+    <div class="row">
+        <div class="col-2">Название блюда</div>
+        <div class="col-2">Стоимость в рублях</div>
+    </div>
+    <div class="row" ng-repeat="dish in dishes">
+        <div class="col-2">{{ dish.name }}</div>
+        <div class="col-2">{{ dish.cost }}</div>
+        <div class="col-8"><a ng-click="edit( dish )" class="btn">Изменить</a> <a ng-click="remove( dish )" class="btn">Удалить</a>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
